@@ -165,3 +165,65 @@ jobs:
             exit 1
           fi
           echo "Uploaded build ${{ steps.bn.outputs.next }} to TestFlight."
+
+      # Grant the internal tester directly on the new build. hasAccessToAllBuilds
+      # covers this in theory, but group resolution stalled on build 1, so assign
+      # explicitly. Also fires the invite so TestFlight notifies immediately.
+      - name: Release to testers
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          TESTER_EMAIL: ${{ secrets.TESTFLIGHT_TESTER_EMAIL }}
+        run: |
+          echo "$ASC_KEY_P8" > /tmp/asc.p8
+          /tmp/venv/bin/python <<'PY'
+          import jwt, time, requests, os, sys
+          BASE="https://api.appstoreconnect.apple.com/v1"
+          BUNDLE="com.connor.skippy"
+          EMAIL=os.environ.get("TESTER_EMAIL") or "cwsharp23@icloud.com"
+
+          def tok():
+              k=open("/tmp/asc.p8").read(); now=int(time.time())
+              return jwt.encode({"iss":os.environ["ASC_ISSUER_ID"],"iat":now,"exp":now+900,
+                                 "aud":"appstoreconnect-v1"},k,algorithm="ES256",
+                                headers={"kid":os.environ["ASC_KEY_ID"],"typ":"JWT"})
+          H={"Authorization":"Bearer "+tok(),"Content-Type":"application/json"}
+
+          app=requests.get(f"{BASE}/apps",headers=H,
+                params={"filter[bundleId]":BUNDLE}).json().get("data",[])
+          if not app:
+              print("no app record; skipping"); sys.exit(0)
+          APP=app[0]["id"]
+
+          # wait for Apple to finish processing, up to ~10 min
+          build=None
+          for attempt in range(40):
+              b=requests.get(f"{BASE}/builds",headers=H,
+                    params={"filter[app]":APP,"sort":"-version","limit":1}).json().get("data",[])
+              if b and b[0]["attributes"]["processingState"]=="VALID":
+                  build=b[0]; break
+              state = b[0]["attributes"]["processingState"] if b else "none"
+              print(f"  waiting on processing ({state})...")
+              time.sleep(15)
+          if not build:
+              print("build not VALID in time; testers not assigned"); sys.exit(0)
+          BID=build["id"]
+          print("build", build["attributes"]["version"], "is VALID")
+
+          testers=requests.get(f"{BASE}/betaTesters",headers=H,
+                params={"filter[email]":EMAIL,"limit":1}).json().get("data",[])
+          if not testers:
+              print("tester not found:", EMAIL); sys.exit(0)
+          TID=testers[0]["id"]
+
+          r=requests.post(f"{BASE}/builds/{BID}/relationships/individualTesters",
+                headers=H,json={"data":[{"type":"betaTesters","id":TID}]})
+          print("individual tester grant:", r.status_code)
+
+          r=requests.post(f"{BASE}/betaTesterInvitations",headers=H,json={"data":{
+                "type":"betaTesterInvitations","relationships":{
+                  "app":{"data":{"type":"apps","id":APP}},
+                  "betaTester":{"data":{"type":"betaTesters","id":TID}}}}})
+          print("invite sent:", r.status_code)
+          PY
