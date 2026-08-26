@@ -11,7 +11,6 @@ settings:
     SWIFT_VERSION: "5.9"
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
-    CODE_SIGN_STYLE: Automatic
     ENABLE_USER_SCRIPT_SANDBOXING: NO
 
 targets:
@@ -26,16 +25,19 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.connor.skippy
+        PRODUCT_NAME: Skippy
+        PROVISIONING_PROFILE_SPECIFIER: Skippy CI
+        CODE_SIGN_ENTITLEMENTS: Skippy/Skippy.entitlements
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_CFBundleDisplayName: Skippy
         INFOPLIST_KEY_UIBackgroundModes: remote-notification fetch processing
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
-        CODE_SIGN_ENTITLEMENTS: Skippy/Skippy.entitlements
     info:
       path: Skippy/Info.plist
       properties:
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
+        ITSAppUsesNonExemptEncryption: false
         BGTaskSchedulerPermittedIdentifiers:
           - com.connor.skippy.refresh
 
@@ -48,10 +50,26 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.connor.skippy.widget
+        PRODUCT_NAME: SkippyWidget
+        PROVISIONING_PROFILE_SPECIFIER: Skippy Widget CI
         CODE_SIGN_ENTITLEMENTS: SkippyWidget/SkippyWidget.entitlements
     info:
       path: SkippyWidget/Info.plist
       properties:
         CFBundleDisplayName: Skippy
+        ITSAppUsesNonExemptEncryption: false
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+
+# Explicit iOS-only scheme. Without one, an embedded extension plus
+# `-destination generic/platform=iOS` gives "Supported platforms for the
+# buildables in the current scheme is empty".
+schemes:
+  Skippy:
+    build:
+      targets:
+        Skippy: all
+    run:
+      config: Debug
+    archive:
+      config: Release
