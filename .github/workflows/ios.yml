@@ -175,6 +175,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
           TESTER_EMAIL: ${{ secrets.TESTFLIGHT_TESTER_EMAIL }}
+          WANT_BUILD: ${{ steps.bn.outputs.next }}
         run: |
           echo "$ASC_KEY_P8" > /tmp/asc.p8
           /tmp/venv/bin/python <<'PY'
@@ -196,15 +197,18 @@ jobs:
               print("no app record; skipping"); sys.exit(0)
           APP=app[0]["id"]
 
-          # wait for Apple to finish processing, up to ~10 min
+          # Wait for THIS build specifically. Matching "newest VALID" grabs the
+          # previous build, because the one just uploaded is still processing.
+          WANT=os.environ.get("WANT_BUILD","").strip()
           build=None
           for attempt in range(40):
               b=requests.get(f"{BASE}/builds",headers=H,
-                    params={"filter[app]":APP,"sort":"-version","limit":1}).json().get("data",[])
-              if b and b[0]["attributes"]["processingState"]=="VALID":
-                  build=b[0]; break
-              state = b[0]["attributes"]["processingState"] if b else "none"
-              print(f"  waiting on processing ({state})...")
+                    params={"filter[app]":APP,"sort":"-version","limit":5}).json().get("data",[])
+              mine=[x for x in b if x["attributes"]["version"]==WANT] if WANT else b[:1]
+              if mine and mine[0]["attributes"]["processingState"]=="VALID":
+                  build=mine[0]; break
+              state = mine[0]["attributes"]["processingState"] if mine else "not yet listed"
+              print(f"  waiting on build {WANT} ({state})...")
               time.sleep(15)
           if not build:
               print("build not VALID in time; testers not assigned"); sys.exit(0)
@@ -221,9 +225,9 @@ jobs:
                 headers=H,json={"data":[{"type":"betaTesters","id":TID}]})
           print("individual tester grant:", r.status_code)
 
-          r=requests.post(f"{BASE}/betaTesterInvitations",headers=H,json={"data":{
-                "type":"betaTesterInvitations","relationships":{
-                  "app":{"data":{"type":"apps","id":APP}},
-                  "betaTester":{"data":{"type":"betaTesters","id":TID}}}}})
-          print("invite sent:", r.status_code)
+          # 409 here means already assigned, which is a success, not a failure.
+          if r.status_code in (200,201,204,409):
+              print("tester has access to build", build["attributes"]["version"])
+          else:
+              print("WARNING: grant failed", r.text[:200])
           PY
