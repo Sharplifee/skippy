@@ -69,6 +69,7 @@ struct OfficeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     StatusHeader(office: store.office)
+                        .padding(.top, 8)
                     LaneStrip(locks: store.office.locks)
 
                     if !store.office.needsYou.isEmpty {
@@ -119,6 +120,9 @@ struct OfficeView: View {
             }
             .refreshable { await store.refresh() }
             .navigationTitle("Skippy")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(.bar, for: .navigationBar)
             .safeAreaInset(edge: .bottom) { Composer(store: store, composing: $composing) }
         }
     }
