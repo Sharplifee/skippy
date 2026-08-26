@@ -38,6 +38,8 @@ targets:
     info:
       path: Skippy/Info.plist
       properties:
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleIconName: AppIcon
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
@@ -66,6 +68,8 @@ targets:
     info:
       path: SkippyWidget/Info.plist
       properties:
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleDisplayName: Skippy
         ITSAppUsesNonExemptEncryption: false
         NSExtension:
