@@ -17,15 +17,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # Our distribution cert is IOS_DISTRIBUTION ("iPhone Distribution").
-      # Xcode 26 rejects that legacy type at signing even though Apple issues
-      # it, so pin to 16.x. Both DISTRIBUTION slots on this team are held by
-      # Scribbly and SquadComms and must not be revoked.
-      - name: Select Xcode 16
+      # Apple now REQUIRES the iOS 26 SDK for any upload, so Xcode 26 is not
+      # optional. Our cert is IOS_DISTRIBUTION ("iPhone Distribution") because
+      # both Apple Distribution slots on this team are held by Scribbly and
+      # SquadComms and must not be revoked.
+      - name: Select newest Xcode
         run: |
           ls -d /Applications/Xcode*.app
-          XC=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
-          if [ -z "$XC" ]; then XC=$(ls -d /Applications/Xcode*.app | sort -V | tail -1); fi
+          XC=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
           echo "Using $XC"
           sudo xcode-select -s "$XC"
           xcodebuild -version

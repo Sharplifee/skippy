@@ -13,8 +13,9 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: iPhone Distribution
-    "CODE_SIGN_IDENTITY[sdk=iphoneos*]": iPhone Distribution
+    # iPhone only. iPad support drags in multitasking rules that demand a
+    # 152x152 icon, all four orientations and a storyboard launch screen.
+    TARGETED_DEVICE_FAMILY: "1"
 
 targets:
   Skippy:
@@ -31,13 +32,16 @@ targets:
         PRODUCT_NAME: Skippy
         PROVISIONING_PROFILE_SPECIFIER: Skippy CI
         CODE_SIGN_ENTITLEMENTS: Skippy/Skippy.entitlements
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Skippy
         INFOPLIST_KEY_UIBackgroundModes: remote-notification fetch processing
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
     info:
       path: Skippy/Info.plist
       properties:
+        CFBundleIconName: AppIcon
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
         ITSAppUsesNonExemptEncryption: false
