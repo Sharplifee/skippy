@@ -17,11 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Select newest Xcode
+      # Our distribution cert is IOS_DISTRIBUTION ("iPhone Distribution").
+      # Xcode 26 rejects that legacy type at signing even though Apple issues
+      # it, so pin to 16.x. Both DISTRIBUTION slots on this team are held by
+      # Scribbly and SquadComms and must not be revoked.
+      - name: Select Xcode 16
         run: |
-          NEWEST=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          echo "Using $NEWEST"
-          sudo xcode-select -s "$NEWEST"
+          ls -d /Applications/Xcode*.app
+          XC=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XC" ]; then XC=$(ls -d /Applications/Xcode*.app | sort -V | tail -1); fi
+          echo "Using $XC"
+          sudo xcode-select -s "$XC"
           xcodebuild -version
 
       - name: Install XcodeGen
@@ -105,6 +111,7 @@ jobs:
             -archivePath $RUNNER_TEMP/Skippy.xcarchive \
             CURRENT_PROJECT_VERSION=${{ steps.bn.outputs.next }} \
             CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/build.keychain" \
             2>&1 | tee /tmp/archive.log | grep -E "error:|\*\* ARCHIVE" || true
