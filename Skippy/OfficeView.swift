@@ -6,6 +6,12 @@ final class OfficeStore: ObservableObject {
     @Published var error: String?
     @Published var loading = false
     @Published var draft = ""
+    @Published var sending = false
+    @Published var lastReply: String?
+
+    /// Off by default. Flip it in Settings when you want Skippy to take the
+    /// Island for a specific long job.
+    @AppStorage("skippy.islandEnabled") var islandEnabled = false
 
     private var pump: Task<Void, Never>?
 
@@ -31,7 +37,10 @@ final class OfficeStore: ObservableObject {
             let fresh = try await SkippyAPI.shared.office()
             office = fresh
             error = nil
-            if let island = fresh.island {
+            // The Live Activity is OPT-IN. It is never started automatically —
+            // there is one Dynamic Island slot and another app usually owns it.
+            // Status arrives as push alerts instead.
+            if islandEnabled, let island = fresh.island {
                 if island.phase == .done && island.runsActive == 0 && island.runsNeedingYou == 0 {
                     await ActivityController.shared.end()
                 } else {
@@ -49,8 +58,11 @@ final class OfficeStore: ObservableObject {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         draft = ""
+        sending = true
+        defer { sending = false }
         do {
-            try await SkippyAPI.shared.submit(intent: text)
+            let said = try await SkippyAPI.shared.say(text)
+            lastReply = said.reply
             await refresh(silent: true)
         } catch {
             self.error = error.localizedDescription
@@ -353,6 +365,9 @@ private struct Composer: View {
 
     var body: some View {
         HStack(spacing: 10) {
+            if store.sending {
+                ProgressView().scaleEffect(0.8).padding(.leading, 4)
+            }
             TextField("Tell Skippy what to do", text: $store.draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...4)
@@ -366,7 +381,7 @@ private struct Composer: View {
             } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.title2)
             }
-            .disabled(store.draft.trimmingCharacters(in: .whitespaces).isEmpty)
+            .disabled(store.sending || store.draft.trimmingCharacters(in: .whitespaces).isEmpty)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

@@ -12,6 +12,7 @@ actor SkippyAPI {
     static let shared = SkippyAPI()
 
     private let base = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skippy-api")!
+    private let sayURL = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skippy-say")!
 
     private enum Keys {
         static let installID = "skippy.installID"
@@ -86,14 +87,15 @@ actor SkippyAPI {
         return token
     }
 
-    /// A sandbox build must be pushed through Apple's sandbox host. Getting this
-    /// wrong yields BadDeviceToken with no other symptom.
+    /// TestFlight builds carry a `sandboxReceipt` but push through the
+    /// PRODUCTION APNs host. Detecting the environment from the receipt is the
+    /// classic trap — it yields BadDeviceToken with no other symptom. Only a
+    /// locally-built DEBUG binary is genuinely sandbox.
     nonisolated static var apnsEnvironment: String {
         #if DEBUG
         return "sandbox"
         #else
-        guard let url = Bundle.main.appStoreReceiptURL else { return "production" }
-        return url.lastPathComponent == "sandboxReceipt" ? "sandbox" : "production"
+        return "production"
         #endif
     }
 
@@ -132,6 +134,37 @@ actor SkippyAPI {
         let json = try await post("submit", body: body)
         guard let id = json["task_id"] as? String else { throw SkippyError.badResponse }
         return id
+    }
+
+    /// The Maestro's conversational turn. It answers questions directly and
+    /// only dispatches a task when the message is actually work. Everything
+    /// used to become a task, so asking "what is this?" sent a research agent
+    /// to investigate the phrase.
+    struct Said {
+        let mode: String       // "reply" | "work"
+        let reply: String
+        let taskID: String?
+    }
+
+    func say(_ text: String) async throws -> Said {
+        guard let token = installToken else { throw SkippyError.notRegistered }
+        var req = URLRequest(url: sayURL)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "content-type")
+        req.setValue(token, forHTTPHeaderField: "x-install-token")
+        req.timeoutInterval = 60
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["text": text])
+
+        let (data, response) = try await URLSession.shared.data(for: req)
+        let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+        if code == 401 { installToken = nil; throw SkippyError.unauthorized }
+        guard (200..<300).contains(code) else {
+            throw SkippyError.server(code, json["error"] as? String ?? "unknown")
+        }
+        return Said(mode: json["mode"] as? String ?? "reply",
+                    reply: json["reply"] as? String ?? "",
+                    taskID: json["task_id"] as? String)
     }
 
     // MARK: - Device command queue
