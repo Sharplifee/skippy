@@ -9,15 +9,15 @@ final class OfficeStore: ObservableObject {
     @Published var sending = false
     @Published var lastReply: String?
 
-    /// Off by default. Flip it in Settings when you want Skippy to take the
+    /// Off by default. Flip it in Settings when you want Skipper to take the
     /// Island for a specific long job.
-    @AppStorage("skippy.islandEnabled") var islandEnabled = false
+    @AppStorage("skipper.islandEnabled") var islandEnabled = false
 
     private var pump: Task<Void, Never>?
 
     func start() async {
-        if await !SkippyAPI.shared.isRegistered {
-            do { try await SkippyAPI.shared.register() }
+        if await !SkipperAPI.shared.isRegistered {
+            do { try await SkipperAPI.shared.register() }
             catch { self.error = error.localizedDescription }
         }
         await refresh()
@@ -34,7 +34,7 @@ final class OfficeStore: ObservableObject {
         if !silent { loading = true }
         defer { loading = false }
         do {
-            let fresh = try await SkippyAPI.shared.office()
+            let fresh = try await SkipperAPI.shared.office()
             office = fresh
             error = nil
             // The Live Activity is OPT-IN. It is never started automatically —
@@ -61,7 +61,7 @@ final class OfficeStore: ObservableObject {
         sending = true
         defer { sending = false }
         do {
-            let said = try await SkippyAPI.shared.say(text)
+            let said = try await SkipperAPI.shared.say(text)
             lastReply = said.reply
             await refresh(silent: true)
         } catch {
@@ -70,7 +70,7 @@ final class OfficeStore: ObservableObject {
     }
 }
 
-/// Walking into Skippy's office: every lane, every job, every answer, and the
+/// Walking into Skipper's office: every lane, every job, every answer, and the
 /// conversation, on one screen.
 struct OfficeView: View {
     @EnvironmentObject var store: OfficeStore
@@ -131,7 +131,7 @@ struct OfficeView: View {
                 .padding(.bottom, 90)
             }
             .refreshable { await store.refresh() }
-            .navigationTitle("Skippy")
+            .navigationTitle("Skipper")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(.bar, for: .navigationBar)
@@ -177,7 +177,7 @@ private struct StatusHeader: View {
         .padding(.top, 4)
     }
 
-    private func tint(_ p: SkippyAttributes.ContentState.Phase) -> Color {
+    private func tint(_ p: SkipperAttributes.ContentState.Phase) -> Color {
         switch p {
         case .working: return .blue
         case .waiting: return .orange
@@ -368,7 +368,7 @@ private struct Composer: View {
             if store.sending {
                 ProgressView().scaleEffect(0.8).padding(.leading, 4)
             }
-            TextField("Tell Skippy what to do", text: $store.draft, axis: .vertical)
+            TextField("Tell Skipper what to do", text: $store.draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .lineLimit(1...4)
                 .focused($composing)

@@ -4,7 +4,7 @@
 
 Public repo. Any credential committed here is on the open internet. Rather than
 ship an anon key and rely on row-level security being exactly right, the client
-talks only to `skippy-api`, which runs with service-role privileges server-side.
+talks only to `skipper-api`, which runs with service-role privileges server-side.
 
 Registration is deliberately unauthenticated: it is write-only and low value. The
 worst an attacker does is register junk device tokens, which APNs rejects and the

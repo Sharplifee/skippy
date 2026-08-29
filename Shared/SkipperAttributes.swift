@@ -7,7 +7,7 @@ import Foundation
 /// match the JSON returned by `maestro.island_state()` exactly. If a field name
 /// or type drifts, iOS silently drops the push update — no error, no log, the
 /// Island just stops moving. That silence is why this lives in one file.
-public struct SkippyAttributes: ActivityAttributes {
+public struct SkipperAttributes: ActivityAttributes {
 
     public struct ContentState: Codable, Hashable {
 
@@ -73,8 +73,8 @@ public struct SkippyAttributes: ActivityAttributes {
             budgetFraction = try? c.decode(Double.self, forKey: .budgetFraction)
             costToday = try? c.decode(Double.self, forKey: .costToday)
             if let s = try? c.decode(String.self, forKey: .updatedAt) {
-                updatedAt = ISO8601DateFormatter.skippyFractional.date(from: s)
-                    ?? ISO8601DateFormatter.skippyPlain.date(from: s)
+                updatedAt = ISO8601DateFormatter.skipperFractional.date(from: s)
+                    ?? ISO8601DateFormatter.skipperPlain.date(from: s)
                     ?? .now
             } else {
                 updatedAt = .now
@@ -85,17 +85,17 @@ public struct SkippyAttributes: ActivityAttributes {
     public var agentName: String
     public var conversationId: String
 
-    public init(agentName: String = "Skippy", conversationId: String = "") {
+    public init(agentName: String = "Skipper", conversationId: String = "") {
         self.agentName = agentName
         self.conversationId = conversationId
     }
 }
 
 public extension ISO8601DateFormatter {
-    static let skippyFractional: ISO8601DateFormatter = {
+    static let skipperFractional: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
     }()
-    static let skippyPlain = ISO8601DateFormatter()
+    static let skipperPlain = ISO8601DateFormatter()
 }

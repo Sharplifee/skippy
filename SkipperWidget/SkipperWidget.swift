@@ -3,15 +3,15 @@ import SwiftUI
 import ActivityKit
 
 @main
-struct SkippyWidgetBundle: WidgetBundle {
-    var body: some Widget { SkippyLiveActivity() }
+struct SkipperWidgetBundle: WidgetBundle {
+    var body: some Widget { SkipperLiveActivity() }
 }
 
 /// Every Dynamic Island surface plus the Lock Screen presentation. The server
 /// pushes `ContentState` straight into these — no fetching happens here.
-struct SkippyLiveActivity: Widget {
+struct SkipperLiveActivity: Widget {
     var body: some WidgetConfiguration {
-        ActivityConfiguration(for: SkippyAttributes.self) { context in
+        ActivityConfiguration(for: SkipperAttributes.self) { context in
             LockScreenView(state: context.state, agent: context.attributes.agentName)
                 .activityBackgroundTint(Color.black.opacity(0.55))
                 .activitySystemActionForegroundColor(.white)
@@ -81,7 +81,7 @@ struct SkippyLiveActivity: Widget {
         }
     }
 
-    private func tint(_ p: SkippyAttributes.ContentState.Phase) -> Color {
+    private func tint(_ p: SkipperAttributes.ContentState.Phase) -> Color {
         switch p {
         case .working: return .blue
         case .waiting: return .orange
@@ -93,7 +93,7 @@ struct SkippyLiveActivity: Widget {
 }
 
 private struct LockScreenView: View {
-    let state: SkippyAttributes.ContentState
+    let state: SkipperAttributes.ContentState
     let agent: String
 
     var body: some View {

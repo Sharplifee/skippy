@@ -4,7 +4,7 @@ import UserNotifications
 import BackgroundTasks
 
 @main
-struct SkippyApp: App {
+struct SkipperApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var store = OfficeStore()
 
@@ -35,14 +35,14 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func application(_ app: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken token: Data) {
         let hex = token.map { String(format: "%02x", $0) }.joined()
-        Task { try? await SkippyAPI.shared.register(deviceToken: hex) }
+        Task { try? await SkipperAPI.shared.register(deviceToken: hex) }
     }
 
     func application(_ app: UIApplication,
                      didFailToRegisterForRemoteNotificationsWithError error: Error) {
         // Registration without a device token still yields an install token, so
         // the app stays usable — it just cannot receive alerts.
-        Task { try? await SkippyAPI.shared.register() }
+        Task { try? await SkipperAPI.shared.register() }
     }
 
     func userNotificationCenter(_ c: UNUserNotificationCenter,
@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 @MainActor
 final class ActivityController: ObservableObject {
     static let shared = ActivityController()
-    @Published private(set) var current: Activity<SkippyAttributes>?
+    @Published private(set) var current: Activity<SkipperAttributes>?
 
     var isAvailable: Bool { ActivityAuthorizationInfo().areActivitiesEnabled }
 
@@ -79,7 +79,7 @@ final class ActivityController: ObservableObject {
     /// back to the server, then keeps shipping it every time it rotates. Without
     /// the rotation observer the Island goes dark after the first rotation with
     /// no error anywhere.
-    func start(conversationId: String = "", initial: SkippyAttributes.ContentState) async {
+    func start(conversationId: String = "", initial: SkipperAttributes.ContentState) async {
         guard isAvailable else { return }
         if let existing = current {
             await update(initial)
@@ -88,7 +88,7 @@ final class ActivityController: ObservableObject {
         }
         do {
             let activity = try Activity.request(
-                attributes: SkippyAttributes(agentName: "Skippy", conversationId: conversationId),
+                attributes: SkipperAttributes(agentName: "Skipper", conversationId: conversationId),
                 content: .init(state: initial, staleDate: Date().addingTimeInterval(900)),
                 pushType: .token)
             current = activity
@@ -98,23 +98,23 @@ final class ActivityController: ObservableObject {
         }
     }
 
-    private func observeToken(_ activity: Activity<SkippyAttributes>) {
+    private func observeToken(_ activity: Activity<SkipperAttributes>) {
         Task {
             for await tokenData in activity.pushTokenUpdates {
                 let hex = tokenData.map { String(format: "%02x", $0) }.joined()
-                try? await SkippyAPI.shared.registerActivity(activityID: activity.id, pushToken: hex)
+                try? await SkipperAPI.shared.registerActivity(activityID: activity.id, pushToken: hex)
             }
         }
     }
 
-    func update(_ state: SkippyAttributes.ContentState) async {
+    func update(_ state: SkipperAttributes.ContentState) async {
         guard let activity = current else { return }
         await activity.update(.init(state: state, staleDate: Date().addingTimeInterval(900)))
     }
 
     func end() async {
         guard let activity = current else { return }
-        try? await SkippyAPI.shared.endActivity(activityID: activity.id)
+        try? await SkipperAPI.shared.endActivity(activityID: activity.id)
         await activity.end(nil, dismissalPolicy: .immediate)
         current = nil
     }
@@ -131,9 +131,9 @@ actor CommandPoller {
     func drain(max: Int = 5) async throws -> Int {
         var handled = 0
         for _ in 0..<max {
-            guard let cmd = try await SkippyAPI.shared.claimCommand() else { break }
+            guard let cmd = try await SkipperAPI.shared.claimCommand() else { break }
             let (ok, note) = await run(cmd)
-            try await SkippyAPI.shared.completeCommand(id: cmd.id, ok: ok, result: note)
+            try await SkipperAPI.shared.completeCommand(id: cmd.id, ok: ok, result: note)
             handled += 1
         }
         return handled
@@ -151,9 +151,9 @@ actor CommandPoller {
             return (true, "opened shortcut \(name)")
 
         case "notify":
-            let body = cmd.payload?["body"]?.value ?? "Skippy"
+            let body = cmd.payload?["body"]?.value ?? "Skipper"
             let content = UNMutableNotificationContent()
-            content.title = cmd.payload?["title"]?.value ?? "Skippy"
+            content.title = cmd.payload?["title"]?.value ?? "Skipper"
             content.body = body
             let req = UNNotificationRequest(identifier: cmd.id, content: content, trigger: nil)
             do {

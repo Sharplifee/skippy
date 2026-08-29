@@ -3,20 +3,20 @@ import UIKit
 
 /// The only network layer in the app.
 ///
-/// Skippy ships with NO credential. On first launch it calls `/register` with
+/// Skipper ships with NO credential. On first launch it calls `/register` with
 /// nothing but a locally generated install id, receives a per-install token,
 /// and uses that for every subsequent call. That is why this repo can be public:
 /// there is no key in it to leak, and compromising one install exposes exactly
 /// one install.
-actor SkippyAPI {
-    static let shared = SkippyAPI()
+actor SkipperAPI {
+    static let shared = SkipperAPI()
 
-    private let base = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skippy-api")!
-    private let sayURL = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skippy-say")!
+    private let base = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skipper-api")!
+    private let sayURL = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skipper-say")!
 
     private enum Keys {
-        static let installID = "skippy.installID"
-        static let installToken = "skippy.installToken"
+        static let installID = "skipper.installID"
+        static let installToken = "skipper.installToken"
     }
 
     // MARK: - Identity
@@ -46,7 +46,7 @@ actor SkippyAPI {
         req.timeoutInterval = 30
 
         if authed {
-            guard let token = installToken else { throw SkippyError.notRegistered }
+            guard let token = installToken else { throw SkipperError.notRegistered }
             req.setValue(token, forHTTPHeaderField: "x-install-token")
         }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -59,10 +59,10 @@ actor SkippyAPI {
         // Drop it so the next launch re-registers rather than failing forever.
         if code == 401 {
             installToken = nil
-            throw SkippyError.unauthorized
+            throw SkipperError.unauthorized
         }
         guard (200..<300).contains(code) else {
-            throw SkippyError.server(code, json["error"] as? String ?? "unknown")
+            throw SkipperError.server(code, json["error"] as? String ?? "unknown")
         }
         return json
     }
@@ -82,7 +82,7 @@ actor SkippyAPI {
         if let deviceToken { body["device_token"] = deviceToken }
 
         let json = try await post("register", body: body, authed: false)
-        guard let token = json["install_token"] as? String else { throw SkippyError.badResponse }
+        guard let token = json["install_token"] as? String else { throw SkipperError.badResponse }
         installToken = token
         return token
     }
@@ -118,13 +118,13 @@ actor SkippyAPI {
     func office(limit: Int = 25) async throws -> Office {
         let json = try await post("office", body: ["limit": limit])
         let data = try JSONSerialization.data(withJSONObject: json)
-        return try JSONDecoder.skippy.decode(Office.self, from: data)
+        return try JSONDecoder.skipper.decode(Office.self, from: data)
     }
 
-    func island() async throws -> SkippyAttributes.ContentState {
+    func island() async throws -> SkipperAttributes.ContentState {
         let json = try await post("island", body: [:])
         let data = try JSONSerialization.data(withJSONObject: json)
-        return try JSONDecoder().decode(SkippyAttributes.ContentState.self, from: data)
+        return try JSONDecoder().decode(SkipperAttributes.ContentState.self, from: data)
     }
 
     @discardableResult
@@ -132,7 +132,7 @@ actor SkippyAPI {
         var body: [String: Any] = ["intent": intent, "domain": domain]
         if let successTest { body["success_test"] = successTest }
         let json = try await post("submit", body: body)
-        guard let id = json["task_id"] as? String else { throw SkippyError.badResponse }
+        guard let id = json["task_id"] as? String else { throw SkipperError.badResponse }
         return id
     }
 
@@ -147,7 +147,7 @@ actor SkippyAPI {
     }
 
     func say(_ text: String) async throws -> Said {
-        guard let token = installToken else { throw SkippyError.notRegistered }
+        guard let token = installToken else { throw SkipperError.notRegistered }
         var req = URLRequest(url: sayURL)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "content-type")
@@ -158,9 +158,9 @@ actor SkippyAPI {
         let (data, response) = try await URLSession.shared.data(for: req)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
-        if code == 401 { installToken = nil; throw SkippyError.unauthorized }
+        if code == 401 { installToken = nil; throw SkipperError.unauthorized }
         guard (200..<300).contains(code) else {
-            throw SkippyError.server(code, json["error"] as? String ?? "unknown")
+            throw SkipperError.server(code, json["error"] as? String ?? "unknown")
         }
         return Said(mode: json["mode"] as? String ?? "reply",
                     reply: json["reply"] as? String ?? "",
@@ -177,7 +177,7 @@ actor SkippyAPI {
         let json = try await post("claim-command", body: ["install_id": installID, "lease_s": 120])
         if json["none"] != nil || json["id"] == nil { return nil }
         let data = try JSONSerialization.data(withJSONObject: json)
-        return try? JSONDecoder.skippy.decode(DeviceCommand.self, from: data)
+        return try? JSONDecoder.skipper.decode(DeviceCommand.self, from: data)
     }
 
     func completeCommand(id: String, ok: Bool, result: String) async throws {
@@ -185,7 +185,7 @@ actor SkippyAPI {
     }
 }
 
-enum SkippyError: LocalizedError {
+enum SkipperError: LocalizedError {
     case notRegistered
     case unauthorized
     case badResponse
@@ -202,12 +202,12 @@ enum SkippyError: LocalizedError {
 }
 
 extension JSONDecoder {
-    static let skippy: JSONDecoder = {
+    static let skipper: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .custom { decoder in
             let s = try decoder.singleValueContainer().decode(String.self)
-            if let d = ISO8601DateFormatter.skippyFractional.date(from: s) { return d }
-            if let d = ISO8601DateFormatter.skippyPlain.date(from: s) { return d }
+            if let d = ISO8601DateFormatter.skipperFractional.date(from: s) { return d }
+            if let d = ISO8601DateFormatter.skipperPlain.date(from: s) { return d }
             return Date()
         }
         return d

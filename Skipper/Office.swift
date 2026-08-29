@@ -16,7 +16,7 @@ struct Office: Codable {
     var agents: [Agent]
     var locks: [Lock]
     var budget: Budget?
-    var island: SkippyAttributes.ContentState?
+    var island: SkipperAttributes.ContentState?
     var persona: Persona?
 
     enum CodingKeys: String, CodingKey {

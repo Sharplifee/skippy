@@ -1,4 +1,4 @@
-name: Skippy
+name: Skipper
 options:
   bundleIdPrefix: com.connor
   deploymentTarget:
@@ -18,25 +18,25 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
 
 targets:
-  Skippy:
+  Skipper:
     type: application
     platform: iOS
     sources:
-      - Skippy
+      - Skipper
       - Shared
     dependencies:
-      - target: SkippyWidget
+      - target: SkipperWidget
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.connor.skippy
-        PRODUCT_NAME: Skippy
+        PRODUCT_NAME: Skipper
         PROVISIONING_PROFILE_SPECIFIER: Skippy CI
-        CODE_SIGN_ENTITLEMENTS: Skippy/Skippy.entitlements
+        CODE_SIGN_ENTITLEMENTS: Skipper/Skipper.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-        INFOPLIST_KEY_CFBundleDisplayName: Skippy
+        INFOPLIST_KEY_CFBundleDisplayName: Skipper
         INFOPLIST_KEY_UIBackgroundModes: remote-notification fetch processing
     info:
-      path: Skippy/Info.plist
+      path: Skipper/Info.plist
       properties:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -53,24 +53,24 @@ targets:
         BGTaskSchedulerPermittedIdentifiers:
           - com.connor.skippy.refresh
 
-  SkippyWidget:
+  SkipperWidget:
     type: app-extension
     platform: iOS
     sources:
-      - SkippyWidget
+      - SkipperWidget
       - Shared
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.connor.skippy.widget
-        PRODUCT_NAME: SkippyWidget
+        PRODUCT_NAME: SkipperWidget
         PROVISIONING_PROFILE_SPECIFIER: Skippy Widget CI
-        CODE_SIGN_ENTITLEMENTS: SkippyWidget/SkippyWidget.entitlements
+        CODE_SIGN_ENTITLEMENTS: SkipperWidget/SkipperWidget.entitlements
     info:
-      path: SkippyWidget/Info.plist
+      path: SkipperWidget/Info.plist
       properties:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleShortVersionString: $(MARKETING_VERSION)
-        CFBundleDisplayName: Skippy
+        CFBundleDisplayName: Skipper
         ITSAppUsesNonExemptEncryption: false
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -79,10 +79,10 @@ targets:
 # `-destination generic/platform=iOS` gives "Supported platforms for the
 # buildables in the current scheme is empty".
 schemes:
-  Skippy:
+  Skipper:
     build:
       targets:
-        Skippy: all
+        Skipper: all
     run:
       config: Debug
     archive:

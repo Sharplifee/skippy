@@ -96,25 +96,25 @@ jobs:
           security find-identity -v -p codesigning "$KEYCHAIN"
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROFILE_APP"    | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/skippy.mobileprovision
+          echo "$PROFILE_APP"    | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/skipper.mobileprovision
           echo "$PROFILE_WIDGET" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/widget.mobileprovision
 
       - name: Archive
         run: |
           set -o pipefail
           xcodebuild archive \
-            -project Skippy.xcodeproj \
-            -scheme Skippy \
+            -project Skipper.xcodeproj \
+            -scheme Skipper \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath $RUNNER_TEMP/Skippy.xcarchive \
+            -archivePath $RUNNER_TEMP/Skipper.xcarchive \
             CURRENT_PROJECT_VERSION=${{ steps.bn.outputs.next }} \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="iPhone Distribution" \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/build.keychain" \
             2>&1 | tee /tmp/archive.log | grep -E "error:|\*\* ARCHIVE" || true
-          if [ ! -d "$RUNNER_TEMP/Skippy.xcarchive" ]; then
+          if [ ! -d "$RUNNER_TEMP/Skipper.xcarchive" ]; then
             echo "=== ARCHIVE FAILED — last 80 lines ==="; tail -80 /tmp/archive.log; exit 1
           fi
 
@@ -129,20 +129,20 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>uploadSymbols</key><true/>
             <key>provisioningProfiles</key><dict>
-              <key>com.connor.skippy</key><string>Skippy CI</string>
-              <key>com.connor.skippy.widget</key><string>Skippy Widget CI</string>
+              <key>com.connor.skippy</key><string>Skipper CI</string>
+              <key>com.connor.skippy.widget</key><string>Skipper Widget CI</string>
             </dict>
           </dict></plist>
           PLIST
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/Skippy.xcarchive \
+            -archivePath $RUNNER_TEMP/Skipper.xcarchive \
             -exportOptionsPlist /tmp/ExportOptions.plist \
             -exportPath $RUNNER_TEMP/export \
             -allowProvisioningUpdates NO
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Skippy-ipa
+          name: Skipper-ipa
           path: ${{ runner.temp }}/export/*.ipa
           retention-days: 30
 
@@ -157,7 +157,7 @@ jobs:
           mkdir -p ~/private_keys
           echo "$ASC_KEY_P8" > ~/private_keys/AuthKey_$ASC_KEY_ID.p8
           set -o pipefail
-          xcrun altool --upload-app -f "$RUNNER_TEMP/export/Skippy.ipa" -t ios \
+          xcrun altool --upload-app -f "$RUNNER_TEMP/export/Skipper.ipa" -t ios \
             --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>&1 | tee /tmp/upload.log
           if grep -q "ERROR" /tmp/upload.log; then
             echo "::error::TestFlight upload rejected — see log above."
