@@ -321,12 +321,54 @@ private struct CompletedRow: View {
 
 private struct FindingRow: View {
     let finding: Office.Finding
+
+    /// An answer the verifier rejected must never read as a plain answer.
+    private var isRejected: Bool {
+        finding.verdict == "fail" || finding.standing == "rejected"
+    }
+    private var isVerified: Bool { finding.verified == true }
+
+    private var tint: Color {
+        if isVerified { return .green }
+        if isRejected { return .red }
+        switch finding.standing {
+        case "bad criterion": return .purple
+        case "checking":      return .blue
+        default:              return .secondary
+        }
+    }
+
+    private var glyph: String {
+        if isVerified { return "checkmark.seal.fill" }
+        if isRejected { return "xmark.seal.fill" }
+        switch finding.standing {
+        case "bad criterion": return "questionmark.diamond.fill"
+        case "checking":      return "circle.dotted"
+        default:              return "seal"
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(finding.question).font(.caption).foregroundStyle(.secondary)
-            Text(finding.answer).font(.subheadline)
-            if let c = finding.confidence {
-                Text(c).font(.caption2).foregroundStyle(.tertiary)
+
+            Text(finding.answer)
+                .font(.subheadline)
+                // rejected answers are struck through and dimmed so they can
+                // never be mistaken for a result
+                .strikethrough(isRejected, color: .red)
+                .foregroundStyle(isRejected ? .secondary : .primary)
+
+            HStack(spacing: 5) {
+                Image(systemName: glyph).font(.caption2)
+                Text(finding.standing ?? "unconfirmed")
+                    .font(.caption2.weight(isRejected ? .semibold : .regular))
+            }
+            .foregroundStyle(tint)
+
+            // the verifier's own words, shown only when it did not pass
+            if !isVerified, let note = finding.verifierNote, !note.isEmpty {
+                Text(note).font(.caption2).foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 2)

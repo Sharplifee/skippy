@@ -109,12 +109,27 @@ struct Office: Codable {
         var question: String
         var answer: String
         var sources: [String]?
-        var confidence: String?
         var createdAt: Date?
 
+        /// The verifier's ruling. This is the only trustworthy grade:
+        /// pass | fail | unclear | bad_test.
+        var verdict: String?
+        /// What the verifier actually observed when it re-fetched.
+        var verifierNote: String?
+        /// verified | rejected | bad criterion | unconfirmed | checking
+        var standing: String?
+        /// Single flag the UI can trust.
+        var verified: Bool?
+
+        /// The generator's opinion of itself. Never display this as a grade —
+        /// no component grades itself. Kept for diagnostics only.
+        var selfReportedConfidence: String?
+
         enum CodingKeys: String, CodingKey {
-            case id, question, answer, sources, confidence
+            case id, question, answer, sources, verdict, standing, verified
             case createdAt = "created_at"
+            case verifierNote = "verifier_note"
+            case selfReportedConfidence = "self_reported_confidence"
         }
     }
 
