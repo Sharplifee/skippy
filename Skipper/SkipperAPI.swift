@@ -11,8 +11,8 @@ import UIKit
 actor SkipperAPI {
     static let shared = SkipperAPI()
 
-    private let base = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skipper-api")!
-    private let sayURL = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skipper-say")!
+    private let base = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skippy-api")!
+    private let sayURL = URL(string: "https://lbvaosyfikkpvcwksiph.supabase.co/functions/v1/skippy-say")!
 
     private enum Keys {
         static let installID = "skipper.installID"
