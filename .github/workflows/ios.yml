@@ -129,8 +129,8 @@ jobs:
             <key>signingStyle</key><string>manual</string>
             <key>uploadSymbols</key><true/>
             <key>provisioningProfiles</key><dict>
-              <key>com.connor.skippy</key><string>Skipper CI</string>
-              <key>com.connor.skippy.widget</key><string>Skipper Widget CI</string>
+              <key>com.connor.skippy</key><string>Skippy CI</string>
+              <key>com.connor.skippy.widget</key><string>Skippy Widget CI</string>
             </dict>
           </dict></plist>
           PLIST
